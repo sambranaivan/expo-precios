@@ -26,10 +26,33 @@ export default class Sincro extends Component {
         };
     }
 
+getProductos = () => {
+        
+       
+    const requestProductos = new Request("https://precios.mcypcorrientes.gob.ar/api/producto",
+            { method: 'GET'});
+
+
+        fetch(requestProductos)
+            .then(response => {
+                if (response.status === 200) {
+
+                    respuesta = JSON.parse(response._bodyText);
+                    this.setState({ productos: respuesta });
+                    console.log(respuesta)
+                    this.render();
+                }
+                else {
+                    console.log("ERROR EN NOTIFICACIONES")
+                    console.log(response.status);
+
+                }
+            })
+    }
+
+
   
-onSelectedItemsChange = selectedItems => {
-    this.setState({ selectedItems });
-};
+
 
 
     componentDidMount() {
@@ -45,17 +68,21 @@ onSelectedItemsChange = selectedItems => {
             case 'cadena':
                 this.setState({ seccion: 'inicio'});
                 break;
+                case 'sucursal':
+                    this.setState({ seccion: 'cadena' });
+                    break;
             case 'categoria':
                 this.setState({ seccion: 'sucursal' });
                 break;
-            case 'sucursal':
-                this.setState({ seccion: 'cadena' });
-                break;
             case 'producto':
-                this.setState({ seccion: 'sucursal' });
+                this.setState({ seccion: 'categoria' });
+            case 'producto_listado':
+                this.setState({ seccion: 'categoria' });
                 break;
+            case 'marca':
+                this.setState({ seccion: 'producto_listado' });
             case 'formulario':
-                this.setState({ seccion: 'producto' });
+                this.setState({ seccion: 'producto_listado' });
                 break;
             default:
                 break;
@@ -75,9 +102,46 @@ onSelectedItemsChange = selectedItems => {
 
     setSucursal = (sucursal) => {
         this.setState({ sucursal: sucursal })
-        this.goto('producto')
+        this.goto('categoria')
+    }
+
+    setCategoria = (categoria) => {
+        this.setState({ categoria: categoria })
+        
+        console.log("Filtro por "+categoria.id+" "+categoria.nombre)
+        this.state.filterProductos = productos.filter(producto => producto.categoria_id == categoria.id);
+        
+       
+        // this.goto('producto')
+        this.goto('producto_listado')
+    }
+
+    setProducto = (prod) =>{
+        this.setState({ selectedProducto:prod});
+        this.goto('formulario')
     }
     
+    viewProductoListado = () =>{
+        let botones = []
+
+        for (let index = 0; index < this.state.filterProductos.length; index++) {
+            botones.push(
+                <TouchableOpacity
+                    key={"cadena_" + index}
+                    onPress={() => this.setProducto(this.state.filterProductos[index])}
+                    style={styles.button}
+                >
+                    <Text styles={{ fontSize: 24, color: "white" }}> {this.state.filterProductos[index].nombre}</Text>
+                </TouchableOpacity>
+            )
+        }
+        return <View style={styles.view}>
+            <Text>Seleccionar Producto</Text>
+            <ScrollView>
+                {botones}
+            </ScrollView>
+        </View>
+    }
 
    viewCadenas = () =>{
        let botones = []
@@ -98,6 +162,29 @@ onSelectedItemsChange = selectedItems => {
                     {botones}
                 </View>
    }
+
+   
+    viewCategorias = () => {
+        let botones = []
+
+        for (let index = 0; index < categorias.length; index++) {
+            botones.push(
+                <TouchableOpacity
+                    key={"cadena_" + index}
+                    onPress={() => this.setCategoria(categorias[index])}
+                    style={styles.button}
+                >
+                    <Text styles={{ fontSize: 24, color: "white" }}> {categorias[index].id+"-"+categorias[index].nombre }</Text>
+                </TouchableOpacity>
+            )
+        }
+        return <View style={styles.view}>
+            <Text>Seleccionar Categoria</Text>
+            <ScrollView>
+                {botones}
+            </ScrollView>
+        </View>
+    }
 
    viewSucursales = () =>{
        let botones = []
@@ -127,8 +214,9 @@ onSelectedItemsChange = selectedItems => {
 
 
 
-   onSelectedItemsChange = () =>{
-       console.log("Change")
+    onSelectedItemsChange = selectedItems => {
+       console.log(productos.filter(p => p.id == selectedItems[0]));
+       
    }
 
 
@@ -150,6 +238,9 @@ onSelectedItemsChange = selectedItems => {
                     <TouchableOpacity style={styles.button}>
                         <Text style={styles.button_text}>Subir Carga</Text>
                     </TouchableOpacity>
+                    {/* <TouchableOpacity style={styles.button} onPress={() => this.getProductos()}>
+                        <Text style={styles.button_text}>Api productos</Text>
+                    </TouchableOpacity> */}
                     <View style={styles.header}>
                         <Text style={{ color: "#9a9a9a" }}>{Constants.installationId}</Text>
                     </View>
@@ -158,26 +249,24 @@ onSelectedItemsChange = selectedItems => {
                 {this.state.seccion == 'cadena' &&
                 this.viewCadenas()
                 }
-                {this.state.seccion == 'categoria' &&
-                    <View>
-                        <Text>Seleccionar Categoria</Text>
-                    <TouchableOpacity style={styles.button} onPress={() => this.goto('sucursal')}>
-                        <Text style={styles.button_text}>Nueva Carga</Text>
-                    </TouchableOpacity>
-                    </View>
-                }
                 {this.state.seccion == 'sucursal' &&
-                   this.viewSucursales()
+                    this.viewSucursales()
+                }
+                {this.state.seccion == 'categoria' &&
+                   this.viewCategorias()
+                }
+                {this.state.seccion == "producto_listado" &&
+                    this.viewProductoListado()
                 }
                 {this.state.seccion == 'producto' &&
                     <View >
                         <MultiSelect
                             hideTags
-                            items={productos}
+                            items={this.state.filterProductos}
                             uniqueKey="id"
-                            ref={(component) => { this.multiSelect = component }}
-                            onSelectedItemsChange={this.onSelectedItemsChange}
-                            selectedItems={selectedItems}
+                        ref={(component) => { this.multiSelect = component }}
+                        onSelectedItemsChange={this.onSelectedItemsChange}
+                        selectedItems={selectedItems}
                             selectText="Productos"
                             searchInputPlaceholderText="Buscar..."
                             onChangeInput={(text) => console.log(text)}
@@ -196,6 +285,7 @@ onSelectedItemsChange = selectedItems => {
                         />
                     </View>
                 }
+               
                 {this.state.seccion == 'formulario' &&
                     <View>
                         <Text>Form</Text>
