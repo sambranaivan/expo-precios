@@ -258,33 +258,6 @@ getProductos = () => {
                 {this.state.seccion == "producto_listado" &&
                     this.viewProductoListado()
                 }
-                {this.state.seccion == 'producto' &&
-                    <View >
-                        <MultiSelect
-                            hideTags
-                            items={this.state.filterProductos}
-                            uniqueKey="id"
-                        ref={(component) => { this.multiSelect = component }}
-                        onSelectedItemsChange={this.onSelectedItemsChange}
-                        selectedItems={selectedItems}
-                            selectText="Productos"
-                            searchInputPlaceholderText="Buscar..."
-                            onChangeInput={(text) => console.log(text)}
-                            // altFontFamily="ProximaNova-Light"
-                            tagRemoveIconColor="#CCC"
-                            tagBorderColor="#CCC"
-                            tagTextColor="#CCC"
-                            selectedItemTextColor="#CCC"
-                            selectedItemIconColor="#CCC"
-                            itemTextColor="#000"
-                            displayKey="displayName"
-                            single={true}
-                            searchInputStyle={{ color: '#CCC' }}
-                            submitButtonColor="#CCC"
-                            submitButtonText="Submit"
-                        />
-                    </View>
-                }
                
                 {this.state.seccion == 'formulario' &&
                     <View>
