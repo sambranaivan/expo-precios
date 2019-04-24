@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, ScrollView, NetInfo, Image, TouchableOpacity, AsyncStorage, AppRegistry, Alert, CameraRoll, Button, BackHandler } from 'react-native';
+import { StyleSheet, View, ScrollView, NetInfo, Image, AsyncStorage, AppRegistry, Alert, CameraRoll, BackHandler } from 'react-native';
 import Spinner from 'react-native-loading-spinner-overlay';
 import MultiSelect from 'react-native-multiple-select';
-import { Constants, Location, Permissions,  } from 'expo';
+import t from 'tcomb-form-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Container, Header, Title, Content, Footer, FooterTab, Button, Left, Right, Body, Icon, Text, Form, Item, Input, Grid, Row, Col,H1,H2,H3 } from 'native-base';
+import { Font, Constants, Location, Permissions,  } from 'expo';
 import supermercados from './supermercados';
 import productos from './productos';
 import categorias from './categorias';
@@ -11,7 +14,17 @@ import categorias from './categorias';
 let cadenas = [... new Set(supermercados.map(x => x.nombre))];
 
 // post process productons
+var Formulario = t.form.Form;
 
+// here we are: define your domain model
+var precio = t.struct({
+    Disponible: t.Boolean,        // a boolean
+    precio: t.String,              // a required string
+      // an optional string
+    // a required number
+});
+
+var options = {}; // optional rendering options (see documentation)
 
 
 
@@ -23,36 +36,10 @@ export default class Sincro extends Component {
             cadena:null,
             sucursal:null,
             selectedItems: [],
+            loaded:false,
+            header:"Recolección de Precios"
         };
     }
-
-getProductos = () => {
-        
-       
-    const requestProductos = new Request("https://precios.mcypcorrientes.gob.ar/api/producto",
-            { method: 'GET'});
-
-
-            
-        fetch(requestProductos)
-            .then(response => {
-                if (response.status === 200) {
-
-                    productos = JSON.parse(response._bodyText);
-                    this.setState({ productos: productos });
-                    console.log(productos)
-                    this.render();
-                }
-                else {
-                    console.log("ERROR EN NOTIFICACIONES")
-                    console.log(response.status);
-
-                }
-            })
-    }
-
-
-  
 
 
 
@@ -60,30 +47,49 @@ getProductos = () => {
         BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
     }
 
-    componentWillUnmount() {
+    async componentWillMount() {
         BackHandler.removeEventListener('hardwareBackPress', this.handleBackPress);
+        try {
+            await Font.loadAsync({
+                'Roboto': require('native-base/Fonts/Roboto.ttf'),
+                'Roboto_medium': require('native-base/Fonts/Roboto_medium.ttf'),
+                ...Ionicons.font,
+            });
+
+            this.setState({ loaded: true })
+        } catch (error) {
+
+        }
     }
+
 
     handleBackPress = () => {
         switch (this.state.seccion) {
             case 'cadena':
                 this.setState({ seccion: 'inicio'});
+                this.setState({header:'Recolección de Precios'});
                 break;
                 case 'sucursal':
                     this.setState({ seccion: 'cadena' });
+                    this.setState({header:'cadena'});
                     break;
             case 'categoria':
                 this.setState({ seccion: 'sucursal' });
+                this.setState({header:'sucursal'});
                 break;
             case 'producto':
                 this.setState({ seccion: 'categoria' });
+                this.setState({header:'categoria'});
             case 'producto_listado':
                 this.setState({ seccion: 'categoria' });
+                this.setState({header:'categoria'});
                 break;
             case 'marca':
                 this.setState({ seccion: 'producto_listado' });
+                this.setState({header:'producto_listado'});
             case 'formulario':
                 this.setState({ seccion: 'producto_listado' });
+                this.setState({header:'producto_listado'});
                 break;
             default:
                 break;
@@ -94,6 +100,7 @@ getProductos = () => {
 
    goto = (to)=>{
        this.setState({seccion:to})
+       this.setState({header:to})
    }
 
    setCadena = (cadena)=>{
@@ -127,21 +134,21 @@ getProductos = () => {
 
         for (let index = 0; index < this.state.filterProductos.length; index++) {
             botones.push(
-                <TouchableOpacity
+                <Button full
                     key={"cadena_" + index}
                     onPress={() => this.setProducto(this.state.filterProductos[index])}
-                    style={styles.button}
                 >
-                    <Text styles={{ fontSize: 24, color: "white" }}> {this.state.filterProductos[index].nombre}</Text>
-                </TouchableOpacity>
+                    <Text> {this.state.filterProductos[index].nombre}</Text>
+                </Button>
             )
+             botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
         }
-        return <View style={styles.view}>
-            <Text>Seleccionar Producto</Text>
+        return <Container padder>
+            
             <ScrollView>
                 {botones}
             </ScrollView>
-        </View>
+        </Container>
     }
 
    viewCadenas = () =>{
@@ -149,19 +156,19 @@ getProductos = () => {
 
        for (let index = 0; index < cadenas.length; index++) {
            botones.push(
-               <TouchableOpacity 
+               <Button  full large
                key={"cadena_" + index} 
                    onPress={() => this.setCadena(cadenas[index])}
-               style={styles.button}
                > 
                   <Text styles={{fontSize:24,color:"white"}}> {cadenas[index]}</Text>
-               </TouchableOpacity>
+               </Button>
            )
+            botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
        }
-       return <View style={styles.view}>
-                    <Text>Seleccionar Cadena</Text>
+       return <Container padder>
+                    <H1>Seleccionar Cadena</H1>
                     {botones}
-                </View>
+       </Container>
    }
 
    
@@ -170,21 +177,21 @@ getProductos = () => {
 
         for (let index = 0; index < categorias.length; index++) {
             botones.push(
-                <TouchableOpacity
+                <Button full
                     key={"cadena_" + index}
                     onPress={() => this.setCategoria(categorias[index])}
-                    style={styles.button}
                 >
-                    <Text styles={{ fontSize: 24, color: "white" }}> {categorias[index].id+"-"+categorias[index].nombre }</Text>
-                </TouchableOpacity>
+                    <Text> {categorias[index].id+"-"+categorias[index].nombre }</Text>
+                </Button>
             )
+             botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
         }
-        return <View style={styles.view}>
+        return <Container padder>
             <Text>Seleccionar Categoria</Text>
             <ScrollView>
                 {botones}
             </ScrollView>
-        </View>
+        </Container>
     }
 
    viewSucursales = () =>{
@@ -193,22 +200,22 @@ getProductos = () => {
        for (let index = 0; index < supermercados.length; index++) {
            if(this.state.cadena == supermercados[index].nombre){
                botones.push(
-                   <TouchableOpacity
+                   <Button full
                        key={"cadena_" + index}
                        onPress={() => this.setSucursal(supermercados[index].id)}
-                       style={styles.button}
                    >
-                       <Text styles={{ fontSize: 24, color: "white" }}> {supermercados[index].ubicacion}</Text>
-                   </TouchableOpacity>
+                       <Text> {supermercados[index].ubicacion}</Text>
+                   </Button>
                )
+                botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
            }
        }
-       return <View style={styles.view}>
+       return <Container padder>
                <Text>Seleccionar Sucursal</Text>
            <ScrollView>
                {botones}
            </ScrollView>
-       </View>
+       </Container>
 
        
    }
@@ -225,58 +232,68 @@ getProductos = () => {
 
     render() {
         const { selectedItems } = this.state;
-        return (
-          
-               
-            
-            <View style={styles.container}>
-               
-               {this.state.seccion == 'inicio' &&
-                <View style={styles.view}>
-                    <TouchableOpacity style={styles.button} onPress={() => this.goto('cadena')}>
-                        <Text style={styles.button_text}>Nueva Carga</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button}>
-                        <Text style={styles.button_text}>Subir Carga</Text>
-                    </TouchableOpacity>
-                    {/* <TouchableOpacity style={styles.button} onPress={() => this.getProductos()}>
-                        <Text style={styles.button_text}>Api productos</Text>
-                    </TouchableOpacity> */}
-                    <View style={styles.header}>
-                        <Text style={{ color: "#9a9a9a" }}>{Constants.installationId}</Text>
-                    </View>
-                </View>
-                }
-                {this.state.seccion == 'cadena' &&
-                this.viewCadenas()
-                }
-                {this.state.seccion == 'sucursal' &&
-                    this.viewSucursales()
-                }
-                {this.state.seccion == 'categoria' &&
-                   this.viewCategorias()
-                }
-                {this.state.seccion == "producto_listado" &&
-                    this.viewProductoListado()
-                }
-               
-                {this.state.seccion == 'formulario' &&
-                    <View>
-                        <Text>Form</Text>
-                    </View>
-                }
-                
-            
-    
-    
-    
-    
-                
-                
-                
-    
-            </View>
-        );
+        if (this.state.loaded) {
+            return (
+                <Container style={{ paddingTop: Constants.statusBarHeight }}>
+                    <Header style={styles.verde}>
+                        <Body>
+                           <Title>
+                              {this.state.header}
+                           </Title>
+                        </Body>
+                    </Header>
+                   
+                    {this.state.seccion == 'inicio' &&
+                        <Content padder>
+                        <Button onPress={() => this.goto('cadena')} success full large iconLeft>
+                            <Icon name="add" />
+                                    <Text>Nueva Carga</Text>
+                                </Button>
+                                <Text></Text>
+                        <Button success full large iconLeft>
+                                    <Icon name="cloud-upload"/>
+                                    <Text>Subir Carga</Text>
+                                </Button>
+                        </Content>
+                        
+                    
+                    }
+                    {this.state.seccion == 'cadena' &&
+                        this.viewCadenas()
+                    }
+                    {this.state.seccion == 'sucursal' &&
+                        this.viewSucursales()
+                    }
+                    {this.state.seccion == 'categoria' &&
+                        this.viewCategorias()
+                    }
+                    {this.state.seccion == "producto_listado" &&
+                        this.viewProductoListado()
+                    }
+                    {this.state.seccion == 'formulario' &&
+                        <Content padder>
+                        <Formulario
+                            ref="form"
+                            type={precio}
+                            options={options}
+                        />
+                        <Button full success>
+                            <Text>Guardar</Text>
+                        </Button>
+                        </Content>
+                    }
+                    <Footer>
+                        <Text>{Constants.installationId}</Text>
+                    </Footer>
+                </Container>
+
+            );
+        }
+        else
+        {
+            return <View></View>
+        }
+       
     }
 
    
@@ -315,7 +332,10 @@ const styles = StyleSheet.create({
         // padding: 20,
         fontSize: 24,
         color: 'white'
-    }
+    },
+    verde: {
+        backgroundColor: "#78BE20"
+    },
 
 })
 
