@@ -37,9 +37,9 @@ getProductos = () => {
             .then(response => {
                 if (response.status === 200) {
 
-                    respuesta = JSON.parse(response._bodyText);
-                    this.setState({ productos: respuesta });
-                    console.log(respuesta)
+                    productos = JSON.parse(response._bodyText);
+                    this.setState({ productos: productos });
+                    console.log(productos)
                     this.render();
                 }
                 else {
