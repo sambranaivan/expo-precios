@@ -33,6 +33,7 @@ getProductos = () => {
             { method: 'GET'});
 
 
+            
         fetch(requestProductos)
             .then(response => {
                 if (response.status === 200) {
