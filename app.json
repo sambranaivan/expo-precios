@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "precios",
+    "name": "Precios - Relevamiento",
     "slug": "precios",
     "privacy": "public",
     "sdkVersion": "32.0.0",
@@ -23,7 +23,14 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sambrana.precios",
+      "buildNumber": "2"
+    },
+    "android": {
+      "package": "com.sambrana.precios",
+      "permissions": [],
+      "versionCode": 2
     }
   }
 }
