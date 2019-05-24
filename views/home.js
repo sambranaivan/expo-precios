@@ -34,14 +34,14 @@ var precio = t.struct({
     disponibilidad: t.Boolean,//hidden        // a boolean
     precio_lista: t.maybe(t.Number),              // a required string
     promo:t.Boolean,
-    promo_tipo: t.maybe(t.enums({
-        promo_simple: "Simple", 
-        promo_2_x_1: "2 x 1",
-        promo_3_x_2:"3 x 2",
-        promo_70: "70% en la 2da Unidad",
+    promo_tipo: t.maybe(t.enums({//TODO hacer automatico tambien
+        1: "Simple", 
+        2: "2 x 1",
+        3:"3 x 2",
+        4: "4 x 3"
     })),
     promo_descripcion:t.maybe(t.String),
-    precio_promocion:t.maybe(t.Number),
+    // precio_promocion:t.maybe(t.Number),
     promo_desde:t.maybe(t.Date),
     promo_hasta:t.maybe(t.Date),
     
@@ -153,8 +153,8 @@ export default class Sincro extends Component {
             hasCameraPermission: null,
             scanned: false,
             // servers
-            server: 'sambrana.com.ar/',
-            server: '192.168.43.137/',
+            server: 'https://precios.mcypcorrientes.gob.ar/api/precios/send',
+            // server: 'http://192.168.0.16/precios/api/precios/send',
 
         };
     }
@@ -256,6 +256,11 @@ async   componentDidMount() {
 
    goto = (to)=>{
        this.setState({seccion:to})
+
+       if(to == "cadena")
+       {
+           this.setState({header:"Seleccione Cadena"})
+       }
        
    }
 
@@ -334,7 +339,7 @@ async   componentDidMount() {
 
         for (let index = 0; index < marca_filter.length; index++) {
             botones.push(
-                <Button full
+                <Button full style={styles.verde}
                     key={"cadena_" + index}
                     onPress={() => this.setMarca(marca_filter[index])}
                 >
@@ -357,7 +362,7 @@ async   componentDidMount() {
 
         for (let index = 0; index < this.state.filterProductos.length; index++) {
             botones.push(
-                <Button full
+                <Button full style={styles.verde}
                     key={"cadena_" + index}
                     onPress={() => this.setProducto(this.state.filterProductos[index])}
                 >
@@ -381,7 +386,7 @@ async   componentDidMount() {
 
        for (let index = 0; index < cadenas.length; index++) {
            botones.push(
-               <Button  full large
+               <Button full large style={styles.verde}
                key={"cadena_" + index} 
                    onPress={() => this.setCadena(cadenas[index])}
                > 
@@ -391,7 +396,7 @@ async   componentDidMount() {
             botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
        }
        return <Container padder>
-                    <H1>Seleccionar Cadena</H1>
+                    {/* <H1>Seleccionar Cadena</H1> */}
                     {botones}
        </Container>
    }
@@ -402,7 +407,7 @@ async   componentDidMount() {
 
         for (let index = 0; index < categorias.length; index++) {
             botones.push(
-                <Button full
+                <Button full style={styles.verde}
                     key={"cadena_" + index}
                     onPress={() => this.setCategoria(categorias[index])}
                 >
@@ -414,7 +419,7 @@ async   componentDidMount() {
         return <Container padder>
             <Text>Seleccionar Categoria</Text>
             <ScrollView>
-                <Button 
+                <Button style={styles.verde}
                 onPress={() => this.setState({seccion:"barcode"})} success full large iconRight> 
                     <Icon name="barcode" />
                     <Text>Leer Código de Barras</Text>
@@ -432,7 +437,7 @@ async   componentDidMount() {
        for (let index = 0; index < supermercados.length; index++) {
            if(this.state.cadena == supermercados[index].nombre){
                botones.push(
-                   <Button full
+                   <Button full style={styles.verde}
                        key={"cadena_" + index}
                        onPress={() => this.setSucursal(supermercados[index].id)}
                    >
@@ -556,10 +561,7 @@ async   componentDidMount() {
                     return
                 }
 
-                if (nuevo.precio_promocion == undefined) {
-                    alert("Complete el precio de promocion");
-                    return
-                }
+               
                 
             }
 
@@ -624,7 +626,7 @@ async   componentDidMount() {
         if (this.state.isConnected) {
 
 
-            let server = this.state.server+"precios/send";
+            let server = this.state.server;
             console.log("send data to " + server);
             this.setState({ spinner: true });
 
@@ -657,6 +659,14 @@ async   componentDidMount() {
                                 );
                             } else {
                                 console.log(response);
+                                Alert.alert(
+                                    'Server',
+                                    'Something went wrong on api server!',
+                                    [
+                                        { text: 'Aceptar', onPress: () => console.log('OK Pressed') },
+                                    ],
+                                    { cancelable: false },
+                                );
                                 throw new Error('Something went wrong on api server!');
                             }
                         })
@@ -665,7 +675,7 @@ async   componentDidMount() {
                             console.debug(response);
                             // ...
                         }).catch(error => {
-                            // console.error(error);
+                            console.error(error);
                             console.log(error)
                             // alert("Carga Actualizada*")
                             this.setState({spinner:false})
@@ -771,6 +781,26 @@ async   componentDidMount() {
     );
   }
     
+    ViewData = async () => {
+        try {
+            let data = await AsyncStorage.getItem('data');
+            console.log(data);
+
+        } catch (error) {
+            alert(error)
+        }
+    }
+
+    CleanData = async () => {
+        try {
+            AsyncStorage.removeItem('data');
+            console.log("limpio");
+            alert("Memoria Borrada")
+            // this.setState({ count: 0 });
+        } catch (error) {
+            console.log(error)
+        }
+    }
   
     render() {
         const { selectedItems } = this.state;
@@ -784,12 +814,18 @@ async   componentDidMount() {
                         textContent={'Subiendo...'}
                         textStyle={styles.spinnerTextStyle}
                     />
-                    <Header style={styles.verde}>
-                        <Body>
-                           <Title>
-                              {this.state.header}
+                    <Header style={{backgroundColor:"#3164af", alignItems: 'center',justifyContent: 'center',}}>
+                        <Left>
+                            <Button transparent onPress={() => this.goto('inicio')}>
+                                <Icon name='home' />
+                            </Button>
+                        </Left>
+                        <Body style={{backgroundColor:"#3164af", alignItems: 'center',justifyContent: 'center',}}>
+                           <Title >
+                              {/* {this.state.header} */}
                            </Title>
                         </Body>
+                        
                     </Header>
                    
                     {this.state.seccion == 'inicio' &&
@@ -803,6 +839,15 @@ async   componentDidMount() {
                                     <Icon name="cloud-upload"/>
                                     <Text>Subir Carga</Text>
                                 </Button>
+                        <Text></Text>
+                        {/* <Button onPress={() => this.ViewData()} success full large iconLeft>
+                            <Icon name="cloud-upload" />
+                            <Text>Ver</Text>
+                        </Button> */}
+                        {/* <Button onPress={() => this.CleanData()} success full large iconLeft>
+                            <Icon name="cloud-upload" />
+                            <Text>Borrar</Text>
+                        </Button> */}
                                 
                         </Content>
                         
@@ -830,7 +875,9 @@ async   componentDidMount() {
                     {this.state.seccion == 'formulario' &&
                         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
                         <Content padder>
-                        
+                        {/* Producto */}
+                        {this.state.selectedProducto}
+                        {/* Producto */}
                         <Formulario
                             ref="form"
                             type={precio}
@@ -846,7 +893,7 @@ async   componentDidMount() {
                         </Content>
                     </KeyboardAvoidingView>
                     }
-                    <Footer>
+                    <Footer style={{backgroundColor:"#3164af"}}>
                         <View style={{flexDirection: 'column',}}>
                             <Text style={{ color: "white", flex: 2 }}>ID: {Constants.installationId}</Text>
                             <Text style={{ color: "white", flex: 2 }}>Relevamiento del dia: {this.state.count} Productos</Text>
@@ -871,7 +918,7 @@ async   componentDidMount() {
 
 const styles = StyleSheet.create({
     view:{
-            justifyContent: 'center',
+        justifyContent: 'center',
         alignItems: 'center',
     },
     header: {
@@ -884,7 +931,6 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingTop: Constants.statusBarHeight,
         justifyContent: 'center',
-        // alignItems: 'center',
         backgroundColor: '#f2f2f0',
     },
     spinnerTextStyle: {

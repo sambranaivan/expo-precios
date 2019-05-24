@@ -17,8 +17,6 @@
 {"id":"55","nombre":"Yerba mate","peso":"500 g","categoria_id":"3"},
 {"id":"57","nombre":"Gaseosa base cola","peso":"1,5 litros","categoria_id":"4"},
 {"id":"59","nombre":"Agua sin gas","peso":"1,5 litros","categoria_id":"4"},
-{"id":"61","nombre":"Cerveza en botella","peso":"1 litro","categoria_id":"4"},
-{"id":"63","nombre":"Vino com\u00fan","peso":"1 litro","categoria_id":"4"},
 {"id":"65","nombre":"Asado","peso":"Kg","categoria_id":"5"},
 {"id":"66","nombre":"Carne picada com\u00fan","peso":"Kg","categoria_id":"5"},
 {"id":"67","nombre":"Paleta","peso":"Kg","categoria_id":"5"},
