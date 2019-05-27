@@ -13,6 +13,7 @@ import categorias from './categorias';
 import marcas from './marcas';
 import marca_productos from './marca_productos';
 import moment from 'moment';
+// import storage from './almacenamiento';
 
 // automatico saco las cadenas de los supermercados
 let cadenas = [... new Set(supermercados.map(x => x.nombre))];
@@ -29,16 +30,19 @@ var precio = t.struct({
     supermercado:t.Number,//hidden
     producto:t.Number,
     marca:t.Number,
+    fecha:t.maybe(t.String),
 
     // 
     disponibilidad: t.Boolean,//hidden        // a boolean
     precio_lista: t.maybe(t.Number),              // a required string
     promo:t.Boolean,
     promo_tipo: t.maybe(t.enums({//TODO hacer automatico tambien
-        1: "Simple", 
+        // 1: "Simple", 
         2: "2 x 1",
         3:"3 x 2",
-        4: "4 x 3"
+        4: "4 x 3",
+        5: "70% en la Segunda Unidad",
+        6: "50% en la Segunda Unidad"
     })),
     promo_descripcion:t.maybe(t.String),
     // precio_promocion:t.maybe(t.Number),
@@ -60,7 +64,9 @@ var form_options = {
         latitud: {
             hidden: true
         },
-        
+        fecha: {
+            hidden: true
+        },
         longitud: {
             hidden: true
         },
@@ -143,10 +149,14 @@ export default class Sincro extends Component {
             seccion: "inicio",
             cadena:null,
             count:0,
+            quick:null,
             sucursal:null,
             isConnected: null,
             selectedItems: [],
             loaded:false,
+            status:false,
+            location: null,
+            errorMessage: null,
             header:"Recolección de Precios",
             value: form_defaults,
             // 
@@ -154,45 +164,16 @@ export default class Sincro extends Component {
             scanned: false,
             // servers
             server: 'https://precios.mcypcorrientes.gob.ar/api/precios/send',
-            // server: 'http://192.168.0.16/precios/api/precios/send',
+            
 
         };
     }
 
+   async componentDidMount() {
+            
+            BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
 
-
-async   componentDidMount() {
-        BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
-
-        NetInfo.isConnected.addEventListener(
-            'connectionChange',
-            this._handleConnectivityChange
-        );
-        NetInfo.isConnected.fetch().done(
-            (isConnected) => { this.setState({ isConnected }); }
-        );
-
-         const { status } = await Permissions.askAsync(Permissions.CAMERA);
-        this.setState({ hasCameraPermission: status === 'granted' });
-
-     
-    }
-
-    async componentWillMount() {
-        BackHandler.removeEventListener('hardwareBackPress', this.handleBackPress);
-        try {
-            await Font.loadAsync({
-                'Roboto': require('native-base/Fonts/Roboto.ttf'),
-                'Roboto_medium': require('native-base/Fonts/Roboto_medium.ttf'),
-                ...Ionicons.font,
-            });
-
-            this.setState({ loaded: true })
-            this.updateCount();
-        } catch (error) {
-
-        }
-
+            // 
         if (Platform.OS === 'android' && !Constants.isDevice) {
             this.setState({
                 errorMessage: 'Oops, this will not work on Sketch in an Android emulator. Try it on your device!',
@@ -200,7 +181,51 @@ async   componentDidMount() {
         } else {
             this._getLocationAsync();
         }
+            // 
+        // 
+        const { status } = await Permissions.askAsync(Permissions.CAMERA);
+        this.setState({ hasCameraPermission: status === 'granted' });
+            //
+           
+            
+            NetInfo.isConnected.addEventListener(
+                'connectionChange',
+                this._handleConnectivityChange
+            );
+
+            NetInfo.isConnected.fetch().done(
+                (isConnected) => { this.setState({ isConnected }); }
+            );
+        
+        }
+
+     async componentWillMount() {         
+        try {
+            await Font.loadAsync({
+                'Roboto': require('native-base/Fonts/Roboto.ttf'),
+                'Roboto_medium': require('native-base/Fonts/Roboto_medium.ttf'),
+                ...Ionicons.font,
+            });
+
+          
+
+          
+
+            
+
+            this.setState({ loaded: true })
+            this.updateCount();
+        } catch (error) {
+
+        }
+
+       
+
+         
+       
     }
+
+   
 
     componentWillUnmount() {
         NetInfo.isConnected.removeEventListener(
@@ -216,36 +241,40 @@ async   componentDidMount() {
         });
     };
 
+    /**
+     * Verificar si esta cargado hoy
+     */
+
+    
 
 
     handleBackPress = () => {
         switch (this.state.seccion) {
             case 'cadena':
                 this.setState({ seccion: 'inicio'});
-                this.setState({header:'Recolección de Precios'});
                 break;
-                case 'sucursal':
-                    this.setState({ seccion: 'cadena' });
-                    this.setState({header:'Seleccione Cadena'});
-                    break;
+            case 'barcode':
+                this.setState({ seccion: 'categoria' });
+                break;
+            case 'sucursal':
+                this.setState({ seccion: 'cadena' });
+                
+                break;
             case 'categoria':
                 this.setState({ seccion: 'sucursal' });
-                this.setState({header:"Seleccione Sucursal"})
+                
                 break;
             case 'producto':
                 this.setState({ seccion: 'categoria' });
-                this.setState({header:"Seleccione Categoria"})
+                
             case 'producto_listado':
                 this.setState({ seccion: 'categoria' });
-                this.setState({header:"Seleccione Categoria"})
                 break;
             case 'marca':
                 this.setState({ seccion: 'producto_listado' });
-                this.setState({ header:'Seleccione Producto'});
                 break;
             case 'formulario':
                 this.setState({ seccion: 'marca' });
-                this.setState({ header:'marca'});
                 break;
             default:
                 break;
@@ -275,9 +304,9 @@ async   componentDidMount() {
 
         let _value = this.state.value;
         _value.supermercado = sucursal;
-        this.setState({value:_value})
-        this.goto('categoria')
-        this.setState({header:"Seleccione Categoria"})
+        this.setState({value:_value});
+        this.goto('categoria');
+        this.setState({header:"Seleccione Categoria"});
     }
 
     setCategoria = (categoria) => {
@@ -295,6 +324,7 @@ async   componentDidMount() {
     setProducto = (prod) =>{
         this.setState({ selectedProducto:prod});
         // 
+
         let _value = this.state.value;
         _value.producto = prod.id;
         this.setState({value:_value})
@@ -319,9 +349,47 @@ async   componentDidMount() {
 
 
 
+
+    existe =  (marca_id) =>{
+        console.log("Existe Para");
+
+        console.log("Sup: "+this.state.sucursal)
+        console.log("Prod: " +this.state.selectedProducto.id)
+        console.log("Marca: " +marca_id)
+      
+           if (this.state.quick !== null) 
+           {
+
+               flag = false;
+               this.state.quick.forEach(el => {
+                   if (el.marca == marca_id &&
+                       el.producto == this.state.selectedProducto.id &&
+                       el.supermercado == this.state.sucursal) 
+                       {
+                        flag =  true
+                        }
+               });
+               if(flag){
+                   console.log("existe")
+               }
+               return flag;
+
+           }
+           else
+           {
+               return false;
+
+           }
+           
+
+
+    }
     
 
     viewMarca = () =>{
+
+       
+
         let botones = [];
         let marca_filter = [];
         
@@ -338,14 +406,29 @@ async   componentDidMount() {
         // 
 
         for (let index = 0; index < marca_filter.length; index++) {
-            botones.push(
-                <Button full style={styles.verde}
-                    key={"cadena_" + index}
-                    onPress={() => this.setMarca(marca_filter[index])}
-                >
-                    <Text> {marca_filter[index].nombre}</Text>
-                </Button>
-            )
+
+
+            if(this.existe(marca_filter[index].id))
+            {
+                botones.push(
+                    <Button full style={styles.rojo}
+                        key={"cadena_" + index}>
+                        <Text> {marca_filter[index].nombre +" - "+ this.state.selectedProducto.peso}</Text>
+                    </Button>
+                )
+            }
+            else
+            {
+
+                botones.push(
+                    <Button full style={styles.verde}
+                        key={"cadena_" + index}
+                        onPress={() => this.setMarca(marca_filter[index])}
+                    >
+                        <Text> {marca_filter[index].nombre +" - "+ this.state.selectedProducto.peso}</Text>
+                    </Button>
+                )
+            }
             botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
         }
         return <Container padder>
@@ -366,7 +449,7 @@ async   componentDidMount() {
                     key={"cadena_" + index}
                     onPress={() => this.setProducto(this.state.filterProductos[index])}
                 >
-                    <Text> {this.state.filterProductos[index].nombre + "-" + this.state.filterProductos[index].peso}</Text>
+                    <Text> {this.state.filterProductos[index].nombre + " - " + this.state.filterProductos[index].peso}</Text>
                 </Button>
             )
              botones.push(<Text key={"espacio_" + index}></Text>)///para que haga un especio entre os botones
@@ -513,6 +596,10 @@ async   componentDidMount() {
         var d = new Date()
         value.timestamp = Math.floor(d.getTime() / 1000) + ""
 
+        var f = new Date(d.getTime());
+        f = f.getFullYear() + "-" + f.getMonth() + "-" + f.getDate();
+
+        value.fecha = f;
         if (this.state.errorMessage) {
 
         } else if (this.state.location) {
@@ -615,7 +702,9 @@ async   componentDidMount() {
         _value.precio_lista = undefined;
         _value.promo_descripcion = undefined;
         _value.promo_tipo = undefined;
-        _value.precio_promocion = undefined;
+        _value.promo_desde = undefined;
+        _value.promo_hasta = undefined;
+        _value.disponibilidad = undefined;
         this.setState({ value: _value })
     }
 
@@ -711,13 +800,12 @@ async   componentDidMount() {
                //convierto string a objeto !
                data = JSON.parse(data);
                var d = new Date()
-
-               hoy = d.getFullYear + "-" + d.getMonth + "-" + d.getDate;
-
-
-               filtro = data.filter(e => this.toFecha(e.timestamp) == hoy);
-               console.log(filtro.length);
+               hoy = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+               filtro = data.filter(e => e.fecha == hoy);
                this.setState({ 'count': filtro.length })
+               this.setState({ 'quick': filtro })
+            //    console.log(this.state('count'));
+               
            }
            else {
                this.setState({ 'count': 0 })
@@ -729,11 +817,7 @@ async   componentDidMount() {
        }
     }
 
-    toFecha = (f) =>{
-        var d = new Date(f * 1000);
-        return d.getFullYear + "-" + d.getMonth + "-" + d.getDate;
-    }
-
+   
     findProducto = (prod) =>{
         return false;
     }
@@ -790,7 +874,6 @@ async   componentDidMount() {
             alert(error)
         }
     }
-
     CleanData = async () => {
         try {
             AsyncStorage.removeItem('data');
@@ -800,6 +883,8 @@ async   componentDidMount() {
         } catch (error) {
             console.log(error)
         }
+
+        this.updateCount();
     }
   
     render() {
@@ -844,10 +929,14 @@ async   componentDidMount() {
                             <Icon name="cloud-upload" />
                             <Text>Ver</Text>
                         </Button> */}
-                        {/* <Button onPress={() => this.CleanData()} success full large iconLeft>
+                        <Text></Text>
+                        <Button onPress={() => this.CleanData()} success full large iconLeft>
                             <Icon name="cloud-upload" />
                             <Text>Borrar</Text>
-                        </Button> */}
+                        </Button>
+                        <Text>
+                            {/* {this.state('rapida').length} */}
+                        </Text>
                                 
                         </Content>
                         
@@ -876,7 +965,10 @@ async   componentDidMount() {
                         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
                         <Content padder>
                         {/* Producto */}
-                        {this.state.selectedProducto}
+                        <H3>{this.state.selectedProducto.nombre}</H3>
+                            <H3>{this.state.selectedProducto.peso}</H3>
+                        
+                            <H3>{this.state.selectedMarca.nombre}</H3>
                         {/* Producto */}
                         <Formulario
                             ref="form"
@@ -950,6 +1042,9 @@ const styles = StyleSheet.create({
     },
     verde: {
         backgroundColor: "#78BE20"
+    },
+    rojo: {
+        backgroundColor: "red"
     },
 
 })

@@ -29,8 +29,7 @@
     },
     "android": {
       "package": "com.sambrana.precios",
-      "permissions": [],
-      "versionCode": 2
+      "versionCode": 4
     }
   }
 }
